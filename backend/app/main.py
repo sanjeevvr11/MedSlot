@@ -27,7 +27,10 @@ async def validation_handler(request: Request, exc: RequestValidationError) -> J
     fields: dict[str, str] = {}
     for error in exc.errors():
         field = str(error["loc"][-1]) if error["loc"] else "request"
-        message = error["msg"].removeprefix("Value error, ")
+        if error["type"] == "missing":
+            message = "This field is required."
+        else:
+            message = error["msg"].removeprefix("Value error, ")
         fields.setdefault(field, message)
     return JSONResponse(
         {

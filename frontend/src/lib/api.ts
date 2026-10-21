@@ -18,7 +18,9 @@ export async function api<T>(
   const method = options.method ?? "GET";
   const headers: Record<string, string> = { Accept: "application/json" };
   if (method !== "GET") headers["X-Requested-With"] = "MedSlot"; // CSRF guard
-  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  // FormData sets its own multipart Content-Type (with the boundary).
+  const isForm = options.body instanceof FormData;
+  if (options.body !== undefined && !isForm) headers["Content-Type"] = "application/json";
 
   let response: Response;
   try {
@@ -26,7 +28,7 @@ export async function api<T>(
       method,
       headers,
       credentials: "same-origin",
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      body: isForm ? (options.body as FormData) : options.body !== undefined ? JSON.stringify(options.body) : undefined,
       signal: options.signal,
       cache: "no-store",
     });

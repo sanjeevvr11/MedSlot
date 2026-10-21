@@ -17,8 +17,18 @@ Built as a HubTech internship project with **Next.js + TypeScript + Tailwind** (
 - **Safe booking:** every booking is re-validated on the server, and PostgreSQL **exclusion
   constraints** make it impossible for a doctor (or a patient) to have overlapping confirmed
   appointments, even when requests race.
+- **Booking form:** after picking a slot, a 3-step form (patient details → appointment details →
+  review & confirm) collects name, email, Indian mobile number, first-time or returning patient,
+  appointment type, consultation mode (in person, video, phone), reason for visit and an optional
+  referral document (PDF/JPG/PNG, max 5 MB). Conditional questions appear based on the answers:
+  previous reference for returning patients, allergies for first visits, video app for video
+  calls, accessibility needs for in-person visits, and child's name and age for paediatrics.
+  Inline validation runs in the browser and again on the server; a consent checkbox is required.
+  Unfinished bookings are saved as drafts in the browser (per user and doctor) and can be resumed.
+  The booking, its answers and the referral are saved in one transaction.
 - **Booking management:** unique references (`MS-XXXXXX`), upcoming and past lists, cancellation.
-- **Admin:** dashboard stats, filterable appointment list, cancel on behalf of the clinic, and
+- **Admin:** dashboard stats, filterable appointment list with each booking's form answers and
+  referral, cancel on behalf of the clinic, and
   doctor time off (with a warning about existing bookings inside the blocked period).
 - **UI:** Calendly-style navy and signal-blue design, Motion animations, an animated hero demo
   plus a scroll-driven feature showcase (desktop), responsive layouts, and it honours the
@@ -40,6 +50,12 @@ backend/    FastAPI app (app/), Alembic migrations, pytest suite, demo seed
 frontend/   Next.js App Router app (src/app pages, src/components)
 render.yaml Render Blueprint (Postgres + API + web)
 ```
+
+`POST /api/bookings` is `multipart/form-data` with a JSON `data` part (slot plus form answers) and
+an optional `referral` file part. Referral files are stored in PostgreSQL (`appointment_documents`)
+so they survive redeploys on hosts without a persistent disk; their type is detected from the file
+contents, not the browser. Patients download their own referral from
+`/api/bookings/{reference}/referral`; admins use `/api/admin/appointments/{id}/referral`.
 
 The browser only talks to the Next.js server; `/api/*` is proxied to FastAPI through a Next.js
 rewrite, so the session cookie is first-party and no CORS is needed. State-changing requests
@@ -85,8 +101,10 @@ cd backend && uv run pytest
 The suite runs against the real `medslot_test` PostgreSQL database (the constraints under test
 don't exist in SQLite). It covers the availability calculator, registration and login
 (hashing, duplicate usernames, validation, throttling, CSRF, logout), booking validation, the
-daily limit, ownership checks, the cancellation cutoff, admin permissions, time off, and a
-concurrency test where 8 patients race for one slot and exactly one wins.
+daily limit, ownership checks, the cancellation cutoff, admin permissions, time off, the
+booking form (required fields, email and phone formats, conditional questions, consent, referral
+type, size and access), and a concurrency test where 8 patients race for one slot and exactly
+one wins.
 
 ## Deploy to Render
 

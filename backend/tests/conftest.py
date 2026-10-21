@@ -1,3 +1,4 @@
+import json
 import os
 
 # Must be set before the app (and its engine) is imported.
@@ -109,3 +110,22 @@ def patient(db):
 def admin(db):
     make_user(db, "boss", role=ROLE_ADMIN)
     return login_client("boss")
+
+
+VALID_INTAKE = {
+    "patient_name": "Alice Patient",
+    "patient_email": "alice@example.com",
+    "patient_phone": "98765 43210",
+    "patient_type": "first_time",
+    "consultation_mode": "in_person",
+    "reason": "Persistent cough for two weeks.",
+    "consent": True,
+}
+
+
+def post_booking(client, payload: dict, referral: tuple[str, bytes, str] | None = None):
+    """POST /api/bookings the way the frontend does: multipart with a JSON `data` part."""
+    body = {**VALID_INTAKE, **payload}
+    files = {"referral": referral} if referral else None
+    return client.post("/api/bookings", data={"data": json.dumps(body)}, files=files)
+

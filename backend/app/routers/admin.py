@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -15,7 +15,7 @@ from app.models import (
     TimeOff,
     User,
 )
-from app.routers.bookings import booking_error, serialize
+from app.routers.bookings import booking_error, referral_response, serialize
 from app.schemas import AdminAppointmentOut, AdminStats, CancelIn, DoctorSummary, TimeOffIn, TimeOffOut
 from app.services.availability import clinic_tz
 from app.services.booking import BookingError, cancel_booking
@@ -28,6 +28,7 @@ def _appointments():
         selectinload(Appointment.doctor).selectinload(Doctor.specialty),
         selectinload(Appointment.service),
         selectinload(Appointment.user),
+        selectinload(Appointment.document),
     )
 
 
@@ -99,6 +100,14 @@ def cancel_appointment(
     except BookingError as exc:
         raise booking_error(exc) from exc
     return serialize(db.scalar(_appointments().where(Appointment.id == appointment_id)), AdminAppointmentOut)
+
+
+@router.get("/appointments/{appointment_id}/referral")
+def download_referral(appointment_id: int, db: Session = Depends(get_db)) -> Response:
+    appointment = db.get(Appointment, appointment_id)
+    if appointment is None:
+        raise HTTPException(404, "Appointment not found.")
+    return referral_response(db, appointment)
 
 
 def _doctor(db: Session, doctor_id: int) -> Doctor:

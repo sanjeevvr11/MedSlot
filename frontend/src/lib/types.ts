@@ -90,6 +90,14 @@ export interface Appointment {
     specialty: SpecialtyBrief;
   };
   service: { id: number; name: string; duration_minutes: number };
+  patient_name: string | null;
+  patient_email: string | null;
+  patient_phone: string | null;
+  patient_type: "first_time" | "returning" | null;
+  consultation_mode: "in_person" | "video" | "phone" | null;
+  reason: string | null;
+  details: Record<string, string | number | null> | null;
+  document: { filename: string; content_type: string; size_bytes: number } | null;
   can_cancel: boolean;
   cancel_deadline: string | null;
 }

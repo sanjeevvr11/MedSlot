@@ -27,7 +27,7 @@ export function Footer() {
               <ul className="space-y-2 text-ink-soft">
                 <li>Cancel free up to 2h before</li>
                 <li>One visit per doctor per day</li>
-                <li>No medical records stored</li>
+                <li>Details shared only with your clinic</li>
               </ul>
             </div>
           </div>

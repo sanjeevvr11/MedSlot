@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, CalendarPlus, CalendarRange, Clock, Copy, FileX2, MapPin, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { IntakeSummary } from "@/components/intake-summary";
 import { DoctorAvatar } from "@/components/medical";
 import { Badge, Button, ButtonLink, Card, EmptyState, Modal, PageHeader, Skeleton, cn } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
@@ -271,6 +272,12 @@ export function AppointmentDetail() {
               <Info label="Fee (pay at clinic)" value={formatPrice(appt.price)} />
               <Info label="Booked on" value={formatDate(appt.created_at)} />
             </dl>
+            {appt.patient_name && (
+              <div className="border-t border-dashed border-line pt-5">
+                <p className="mb-3 text-sm font-bold">Patient & visit details</p>
+                <IntakeSummary appt={appt} referralHref={`/api/bookings/${appt.reference}/referral`} />
+              </div>
+            )}
             {appt.status === "cancelled" ? (
               <div className="rounded-2xl bg-danger-tint p-4 text-sm text-danger">
                 <p className="flex items-center gap-2 font-bold"><XCircle className="size-4" /> Cancelled {appt.cancelled_at && `on ${formatDate(appt.cancelled_at)}`}</p>

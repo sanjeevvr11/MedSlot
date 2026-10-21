@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Ban, CalendarClock, CalendarOff, CalendarX2, Stethoscope, Trash2, TriangleAlert, Users } from "lucide-react";
+import { Ban, CalendarClock, ClipboardList, Paperclip, CalendarOff, CalendarX2, Stethoscope, Trash2, TriangleAlert, Users } from "lucide-react";
 import { toast } from "sonner";
+import { IntakeSummary } from "@/components/intake-summary";
 import { Badge, Button, Card, EmptyState, Field, Modal, PageHeader, Skeleton, cn } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
-import { CLINIC_UTC_OFFSET, clinicDayKey, formatDate, formatPrice, formatTime } from "@/lib/format";
+import { MODE_LABELS } from "@/lib/booking-form";
+import { CLINIC_UTC_OFFSET, clinicDayKey, formatDate, formatLongDate, formatPrice, formatTime } from "@/lib/format";
 import type { AdminAppointment, AdminStats, DoctorSummary, TimeOff } from "@/lib/types";
 
 export function AdminDashboard() {
@@ -90,6 +92,7 @@ function AppointmentsPanel({ doctors, onChange }: { doctors: DoctorSummary[]; on
   const [status, setStatus] = useState("");
   const [upcoming, setUpcoming] = useState(true);
   const [target, setTarget] = useState<AdminAppointment | null>(null);
+  const [viewing, setViewing] = useState<AdminAppointment | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -193,13 +196,21 @@ function AppointmentsPanel({ doctors, onChange }: { doctors: DoctorSummary[]; on
                   <td className="px-4 py-3 font-semibold">{a.doctor.name}</td>
                   <td className="px-4 py-3">
                     {a.service.name}
-                    <p className="text-ink-soft">{formatPrice(a.price)}</p>
+                    <p className="flex items-center gap-1.5 text-ink-soft">
+                      {a.consultation_mode ? MODE_LABELS[a.consultation_mode].split(" ")[0] : formatPrice(a.price)}
+                      {a.document && <Paperclip className="size-3.5 text-signal" aria-label="Referral attached" />}
+                    </p>
                   </td>
                   <td className="px-4 py-3">
                     {a.status === "cancelled" ? <Badge tone="red">Cancelled</Badge> : <Badge tone="green">Confirmed</Badge>}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{a.reference}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="space-x-2 whitespace-nowrap px-4 py-3 text-right">
+                    {a.patient_name && (
+                      <Button variant="secondary" size="sm" onClick={() => setViewing(a)}>
+                        <ClipboardList className="size-3.5" /> Details
+                      </Button>
+                    )}
                     {a.status === "confirmed" && new Date(a.starts_at) > new Date() && (
                       <Button variant="danger" size="sm" onClick={() => setTarget(a)}>
                         <Ban className="size-3.5" /> Cancel
@@ -212,6 +223,19 @@ function AppointmentsPanel({ doctors, onChange }: { doctors: DoctorSummary[]; on
           </table>
         </div>
       )}
+
+      <Modal open={!!viewing} onClose={() => setViewing(null)} title={viewing ? `${viewing.reference} · ${viewing.doctor.name}` : ""}>
+        {viewing && (
+          <>
+            <p className="mb-4 text-sm text-ink-soft">
+              {viewing.service.name} · {formatLongDate(viewing.starts_at)}, {formatTime(viewing.starts_at)} · booked by @{viewing.user.username}
+            </p>
+            <div className="max-h-[60vh] overflow-y-auto">
+              <IntakeSummary appt={viewing} referralHref={`/api/admin/appointments/${viewing.id}/referral`} />
+            </div>
+          </>
+        )}
+      </Modal>
 
       <Modal open={!!target} onClose={() => !busy && setTarget(null)} title="Cancel on behalf of the clinic?">
         {target && (

@@ -2,6 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { api, ApiError } from "@/lib/api";
+import { clearUserDrafts } from "@/lib/booking-form";
 import type { User } from "@/lib/types";
 
 interface Snapshot {
@@ -42,6 +43,8 @@ const setUser = (user: User | null) => publish({ user, loading: false });
 
 async function logout() {
   await api("/auth/logout", { method: "POST" });
+  // Unfinished booking drafts may contain health details; don't leave them behind.
+  if (snapshot.user) clearUserDrafts(snapshot.user.id);
   publish({ user: null, loading: false });
 }
 

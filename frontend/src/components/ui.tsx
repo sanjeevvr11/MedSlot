@@ -112,6 +112,93 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field(
   );
 });
 
+const controlClass = (error?: string) =>
+  cn(
+    "w-full rounded-xl border bg-white px-4 text-[15px] text-ink outline-none transition",
+    "placeholder:text-ink-soft/60 focus:border-signal focus:ring-4 focus:ring-signal/10",
+    error ? "border-danger" : "border-line",
+  );
+
+function FieldShell({
+  id,
+  label,
+  error,
+  hint,
+  className,
+  children,
+}: {
+  id: string;
+  label: string;
+  error?: string;
+  hint?: React.ReactNode;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={className}>
+      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold text-ink">
+        {label}
+      </label>
+      {children}
+      {error ? (
+        <p id={`${id}-error`} className="mt-1.5 text-sm text-danger">
+          {error}
+        </p>
+      ) : hint ? (
+        <p id={`${id}-hint`} className="mt-1.5 text-sm text-ink-soft">
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+interface SelectFieldProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  label: string;
+  error?: string;
+  hint?: React.ReactNode;
+}
+
+export function SelectField({ label, error, hint, className, id, children, ...rest }: SelectFieldProps) {
+  const autoId = useId();
+  const selectId = id ?? autoId;
+  return (
+    <FieldShell id={selectId} label={label} error={error} hint={hint} className={className}>
+      <select
+        id={selectId}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${selectId}-error` : hint ? `${selectId}-hint` : undefined}
+        className={cn(controlClass(error), "h-12 font-medium")}
+        {...rest}
+      >
+        {children}
+      </select>
+    </FieldShell>
+  );
+}
+
+interface TextAreaFieldProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label: string;
+  error?: string;
+  hint?: React.ReactNode;
+}
+
+export function TextAreaField({ label, error, hint, className, id, ...rest }: TextAreaFieldProps) {
+  const autoId = useId();
+  const areaId = id ?? autoId;
+  return (
+    <FieldShell id={areaId} label={label} error={error} hint={hint} className={className}>
+      <textarea
+        id={areaId}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${areaId}-error` : hint ? `${areaId}-hint` : undefined}
+        className={cn(controlClass(error), "min-h-28 resize-y py-3 leading-relaxed")}
+        {...rest}
+      />
+    </FieldShell>
+  );
+}
+
 export function Card({ className, children }: { className?: string; children: React.ReactNode }) {
   return <div className={cn("rounded-2xl border border-line bg-white shadow-card", className)}>{children}</div>;
 }

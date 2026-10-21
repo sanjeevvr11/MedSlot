@@ -5,13 +5,14 @@ from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
     Index,
+    LargeBinary,
     Numeric,
     String,
     Text,
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import ExcludeConstraint
+from sqlalchemy.dialects.postgresql import JSONB, ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -20,6 +21,8 @@ ROLE_PATIENT = "patient"
 ROLE_ADMIN = "admin"
 STATUS_CONFIRMED = "confirmed"
 STATUS_CANCELLED = "cancelled"
+PATIENT_TYPES = ("first_time", "returning")
+CONSULTATION_MODES = ("in_person", "video", "phone")
 
 
 class User(Base):
@@ -174,14 +177,35 @@ class Appointment(Base):
     cancelled_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     cancel_reason: Mapped[str | None] = mapped_column(String(200))
 
+    # Intake form. Nullable because bookings made before the form existed
+    # (and seeded demo bookings) don't have it.
+    patient_name: Mapped[str | None] = mapped_column(String(100))
+    patient_email: Mapped[str | None] = mapped_column(String(254))
+    patient_phone: Mapped[str | None] = mapped_column(String(20))
+    patient_type: Mapped[str | None] = mapped_column(String(20))
+    consultation_mode: Mapped[str | None] = mapped_column(String(20))
+    reason: Mapped[str | None] = mapped_column(Text)
+    # Answers to the conditional questions (video platform, child details, ...).
+    details: Mapped[dict | None] = mapped_column(JSONB)
+    consent_at: Mapped[datetime | None]
+
     user: Mapped[User] = relationship(foreign_keys=[user_id])
     doctor: Mapped[Doctor] = relationship()
     service: Mapped[Service] = relationship()
+    document: Mapped["AppointmentDocument | None"] = relationship(back_populates="appointment")
 
     __table_args__ = (
         CheckConstraint("starts_at < ends_at", name="ck_appointments_order"),
         CheckConstraint(
             f"status IN ('{STATUS_CONFIRMED}', '{STATUS_CANCELLED}')", name="ck_appointments_status"
+        ),
+        CheckConstraint(
+            "patient_type IS NULL OR patient_type IN ('first_time', 'returning')",
+            name="ck_appointments_patient_type",
+        ),
+        CheckConstraint(
+            "consultation_mode IS NULL OR consultation_mode IN ('in_person', 'video', 'phone')",
+            name="ck_appointments_mode",
         ),
         # The database itself guarantees a doctor is never double-booked, and a
         # patient never holds two overlapping appointments, even under races.
@@ -201,3 +225,25 @@ class Appointment(Base):
         ),
         Index("ix_appointments_doctor_starts", "doctor_id", "starts_at"),
     )
+
+
+class AppointmentDocument(Base):
+    """Optional referral document attached to a booking.
+
+    Stored in Postgres so it survives redeploys on hosts without a persistent
+    disk. `data` is deferred so listing appointments never loads file bytes.
+    """
+
+    __tablename__ = "appointment_documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    appointment_id: Mapped[int] = mapped_column(
+        ForeignKey("appointments.id", ondelete="CASCADE"), unique=True
+    )
+    filename: Mapped[str] = mapped_column(String(200))
+    content_type: Mapped[str] = mapped_column(String(100))
+    size_bytes: Mapped[int]
+    data: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)
+    uploaded_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    appointment: Mapped[Appointment] = relationship(back_populates="document")

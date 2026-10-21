@@ -8,11 +8,11 @@ from app.db import SessionLocal
 from app.models import STATUS_CONFIRMED, Appointment, User
 from app.services.availability import clinic_tz
 from app.services.booking import BookingError, create_booking
-from tests.conftest import local_slot, login_client, make_user
+from tests.conftest import local_slot, login_client, make_user, post_booking
 
 
-def book(client, service_id, starts_at):
-    return client.post("/api/bookings", json={"service_id": service_id, "starts_at": starts_at.isoformat()})
+def book(client, service_id, starts_at, **intake):
+    return post_booking(client, {"service_id": service_id, "starts_at": starts_at.isoformat(), **intake})
 
 
 def open_slots(client, service_id, starts_at) -> set[datetime]:
@@ -57,9 +57,7 @@ def test_unavailable_and_invalid_times_are_rejected(patient, catalogue):
 
 
 def test_naive_datetimes_are_rejected(patient, catalogue):
-    resp = patient.post(
-        "/api/bookings", json={"service_id": catalogue["service"].id, "starts_at": "2030-01-01T10:00:00"}
-    )
+    resp = post_booking(patient, {"service_id": catalogue["service"].id, "starts_at": "2030-01-01T10:00:00"})
     assert resp.status_code == 422
 
 
