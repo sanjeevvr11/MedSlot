@@ -1,0 +1,47 @@
+# Render Blueprint: creates the database, the API and the website in one go.
+# Render dashboard -> New -> Blueprint -> pick this repository.
+databases:
+  - name: medslot-db
+    databaseName: medslot
+    plan: free
+
+services:
+  - type: web
+    name: medslot-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # Migrations are idempotent; the seed only adds demo data that is missing.
+    startCommand: alembic upgrade head && python -m app.seed --optional && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        fromDatabase:
+          name: medslot-db
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      - key: SEED_DEMO_PASSWORD
+        sync: false
+
+  - type: web
+    name: medslot-web
+    runtime: node
+    plan: free
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Public URL of medslot-api, e.g. https://medslot-api.onrender.com
+      # (used at build time for the /api proxy, so redeploy after changing it).
+      - key: BACKEND_URL
+        sync: false

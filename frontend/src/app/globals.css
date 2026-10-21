@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+/* MedSlot palette: Calendly-style navy ink on cool marble with one signal blue. */
+:root {
+  --ink: #0b3558;
+  --ink-soft: #476788;
+  --signal: #006bff;
+  --signal-dark: #0053c7;
+  --signal-tint: #e8f1ff;
+  --marble: #f4f7fb;
+  --line: #dbe4ee;
+  --success: #0e9f6e;
+  --success-tint: #e6f7f0;
+  --danger: #d93f4c;
+  --danger-tint: #fdecee;
+  --warning: #b7791f;
+  --warning-tint: #fdf5e6;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-signal: var(--signal);
+  --color-signal-dark: var(--signal-dark);
+  --color-signal-tint: var(--signal-tint);
+  --color-marble: var(--marble);
+  --color-line: var(--line);
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+  --color-danger: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --font-sans: var(--font-jakarta);
+  --shadow-card: 0 1px 2px rgb(11 53 88 / 0.04), 0 8px 24px -12px rgb(11 53 88 / 0.18);
+  --shadow-lift: 0 2px 4px rgb(11 53 88 / 0.05), 0 24px 48px -20px rgb(11 53 88 / 0.35);
+}
+
+body {
+  background: #ffffff;
+  color: var(--ink);
+}
+
+::selection {
+  background: var(--signal-tint);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(11 53 88 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(11 53 88 / 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
